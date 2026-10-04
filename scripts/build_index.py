@@ -14,12 +14,16 @@ from quorum.store import PassageStore             # noqa: E402
 
 def main():
     n = len(PassageStore())
-    t = time.time()
-    ix = retrieve.build(n)
-    print(f"built {n:,} vectors in {time.time() - t:.0f}s; "
-          f"{ix.memory_bytes / 2**30:.2f} GiB in memory", flush=True)
+    if "--check-only" in sys.argv:
+        import vecdb
+        ix = vecdb.Index.load(str(retrieve.INDEX_PATH))
+    else:
+        t = time.time()
+        ix = retrieve.build(n)
+        print(f"built {n:,} vectors in {time.time() - t:.0f}s; "
+              f"{ix.memory_bytes / 2**30:.2f} GiB in memory", flush=True)
     qv = Embedder().queries([q.text for q in data.clean_split("dev")])
-    exact, _ = ix.brute_force(qv, k=20)
+    exact = ix.brute_force(qv, k=20)        # labels only
     for ef in (50, 100, 200):
         got, _ = ix.search(qv, k=20, ef=ef, threads=0)
         recall = np.mean([len(set(a) & set(b)) / 20 for a, b in zip(got, exact)])

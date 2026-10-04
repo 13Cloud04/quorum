@@ -1,6 +1,9 @@
 """Defences. Each takes a question and its ranked passages and returns an Outcome.
 
     vanilla        PoisonedRAG's setting: top-k passages in one prompt.
+    guard          Plain RAG's answer, but refuse when that answer rests only on passages
+                   that are near-copies of each other. (Designed after the first results;
+                   validated on a held-out attack set, see README.)
     isolate_vote   RobustRAG's idea (Xiang et al., 2024): answer from each passage on its
                    own, then take the most common answer.
     quorum         This project: filter passages that carry the question or an instruction,
@@ -17,7 +20,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .answers import group, is_idk, tokens
+from .answers import contains, group, is_idk, tokens
 from .llm import rag_prompt
 
 ISOLATED_PROMPT = (
@@ -75,9 +78,10 @@ class InjectionFilter:
     Two changes for documents. Each sentence is also scored on its own, because one
     injected sentence inside a paragraph of ordinary text gets diluted: passage-level
     scoring caught 91 of 500 injected poisons, sentence-level 194. And the threshold is
-    agentgate's warning level (0.6), not its blocking level (0.9), because dropping one
-    of 20 retrieved passages costs little. Both choices were measured on random corpus
-    passages: 5 of 3,000 flagged (0.17%)."""
+    agentgate's warning level (0.6), not its blocking level (0.9) (158 caught), because
+    dropping one of 20 retrieved passages costs little. The price, on 3,000 random corpus
+    passages: 12 flagged (0.4%), against 5 for whole-passage scoring
+    (scripts/filter_stats.py)."""
 
     SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
 
@@ -207,3 +211,27 @@ def quorum(question, passages, answerer, s=QuorumSettings(), inj=None):
     if run and run >= s.conflict * len(win):
         return Outcome("", True, support, dropped, detail | {"why": "sources disagree"})
     return Outcome(rep_answers[win[0]], False, support, dropped, detail)
+
+
+# ---------------------------------------------------------------- guard
+
+def guard(question, passages, answerer, s=QuorumSettings(), inj=None, min_dup=2):
+    """Answer like plain RAG (filters, then top 5 in one prompt), then check where the
+    answer came from: ask each of the top-k passages on its own, keep those whose answer
+    appears in the joint answer, and merge near-copies. If every supporting passage falls
+    in one group of `min_dup` or more near-copies, the answer rests on what is effectively
+    a single source that was repeated, which is what planted passages look like: refuse."""
+    kept = [p for p in passages
+            if not (s.echo and echoes(question, p.text)) and not (s.inject and inj and inj(p.body))]
+    dropped = [p.label for p in passages if p not in kept]
+    out = vanilla(question, kept, answerer, 5)
+    out.dropped = dropped
+    if out.abstained:
+        return out
+    top = kept[:s.k]
+    answers = answerer.isolated(question, top)
+    support = [i for i, a in enumerate(answers) if not is_idk(a) and contains(out.answer, a)]
+    if len(support) >= min_dup and len(set(sources([top[i].vec for i in support], s.tau))) == 1:
+        return Outcome("", True, [top[i].label for i in support], dropped,
+                       {"why": "answer rests on near-copies only", "answers": answers})
+    return out

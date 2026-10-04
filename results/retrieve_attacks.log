@@ -1,0 +1,10 @@
+poisonedrag: 100 questions in 2s; questions with a poison in the top 5: 100
+paraphrase: 100 questions in 2s; questions with a poison in the top 5: 98
+inject: 100 questions in 2s; questions with a poison in the top 5: 100
+diverse: 100 questions in 492s; questions with a poison in the top 5: 97
+diverse: 100 questions in 7s; questions with a poison in the top 5: 97
+clean: 90 questions in 1s; questions with a poison in the top 5: 0
+ho-poisonedrag: 90 questions in 2s; questions with a poison in the top 5: 90
+ho-paraphrase: 90 questions in 12s; questions with a poison in the top 5: 90
+ho-inject: 90 questions in 1s; questions with a poison in the top 5: 90
+ho-diverse: 90 questions in 285s; questions with a poison in the top 5: 90

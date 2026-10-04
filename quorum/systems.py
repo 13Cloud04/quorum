@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, replace
 
 from . import RESULTS
-from .defences import InjectionFilter, QuorumSettings, echoes, isolate_vote, quorum, vanilla
+from .defences import InjectionFilter, QuorumSettings, echoes, guard, isolate_vote, quorum, vanilla
 
 SETTINGS_PATH = RESULTS / "settings.json"
 
@@ -34,9 +34,10 @@ def systems(answerer, s=None, inj=None):
         "vanilla k=10": lambda q, ps: vanilla(q, ps, answerer, 10),
         "filters + vanilla k=5": lambda q, ps: vanilla(q, filtered(q, ps, inj), answerer, 5),
         "isolate-vote k=10": lambda q, ps: isolate_vote(q, ps, answerer, 10),
-        "quorum": lambda q, ps: quorum(q, ps, answerer, s, inj),
-        "quorum - echo filter": lambda q, ps: quorum(q, ps, answerer, replace(s, echo=False), inj),
-        "quorum - injection filter": lambda q, ps: quorum(q, ps, answerer, replace(s, inject=False), inj),
-        "quorum - clustering": lambda q, ps: quorum(q, ps, answerer, replace(s, cluster=False), inj),
-        "quorum - conflict rule": lambda q, ps: quorum(q, ps, answerer, replace(s, conflict=99.0), inj),
+        "quorum vote": lambda q, ps: quorum(q, ps, answerer, s, inj),
+        "quorum guard": lambda q, ps: guard(q, ps, answerer, s, inj),
+        "vote - echo filter": lambda q, ps: quorum(q, ps, answerer, replace(s, echo=False), inj),
+        "vote - injection filter": lambda q, ps: quorum(q, ps, answerer, replace(s, inject=False), inj),
+        "vote - merging": lambda q, ps: quorum(q, ps, answerer, replace(s, cluster=False), inj),
+        "vote - both filters": lambda q, ps: quorum(q, ps, answerer, replace(s, echo=False, inject=False), inj),
     }

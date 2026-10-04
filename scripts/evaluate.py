@@ -1,6 +1,7 @@
 """Stage 3: run every system on every condition and write results/results.json.
 
-    python scripts/evaluate.py            # 100 attacked questions x 5 conditions, 500 clean test
+    python scripts/evaluate.py            # 100 attacked questions x 5 conditions, 500 clean test,
+                                          # then the held-out questions x 5 conditions
 
 Each question ends in one of: correct, attacker (the attacker's chosen answer), abstain,
 other (a wrong answer the attacker did not choose).
@@ -13,11 +14,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from quorum import RESULTS, attacks, data, experiment, systems   # noqa: E402
-from quorum.defences import Answerer                            # noqa: E402
+from quorum.defences import Answerer, InjectionFilter           # noqa: E402
 from quorum.llm import LLM                                      # noqa: E402
 from quorum.store import PassageStore                           # noqa: E402
 
 CONDITIONS = ("clean",) + attacks.ATTACKS
+HELDOUT = ("ho-clean",) + tuple("ho-" + a for a in attacks.ATTACKS)
 
 
 def cases_for(condition, questions, store):
@@ -57,14 +59,19 @@ def main():
     store = PassageStore()
     llm = LLM()
     answerer = Answerer(llm)
-    table = systems.systems(answerer)
+    inj = InjectionFilter()
+    table = systems.systems(answerer, inj=inj)
     targets = data.targets()
     results = {"settings": systems.tuned_settings().__dict__, "conditions": {}, "retrieval": {}}
-    plan = [(c, targets) for c in CONDITIONS] + [("clean-test", data.clean_split("test"))]
-    for name, qs in plan:
-        cases = cases_for("clean" if name == "clean-test" else name, qs, store)
+    heldout = data.heldout_targets()
+    plan = [(c, c, targets) for c in CONDITIONS] + [("clean-test", "clean", data.clean_split("test"))]
+    plan += [(c, "clean" if c == "ho-clean" else c, heldout) for c in HELDOUT]
+    for name, condition, qs in plan:
+        cases = cases_for(condition, qs, store)
         t = time.time()
         experiment.prefetch(answerer, cases, joint_ks=(5, 10))
+        experiment.prefetch(answerer, [(q, systems.filtered(q.text, ps, inj)) for q, ps in cases],
+                            joint_ks=(5,), isolated=False)
         print(f"{name}: {len(cases)} questions, LLM prefetch {time.time() - t:.0f}s "
               f"({llm.calls} model calls so far)", flush=True)
         results["retrieval"][name] = retrieval_stats(cases, len(store))

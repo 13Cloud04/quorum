@@ -41,10 +41,10 @@ def _beir():
     return queries, qrels, nq_open
 
 
-def targets():
+def targets(path=DATA / "poisonedrag_nq.json"):
     """PoisonedRAG's 100 attacked NQ questions with their attacker-chosen answers."""
     queries, qrels, nq_open = _beir()
-    raw = json.loads((DATA / "poisonedrag_nq.json").read_text())
+    raw = json.loads(path.read_text())
     out = []
     for qid, t in raw.items():
         answers = list(nq_open.get(normalize(t["question"]), []))
@@ -53,6 +53,31 @@ def targets():
         out.append(Question(qid, t["question"], answers, qrels.get(qid, []),
                             t["incorrect answer"], t["adv_texts"]))
     return out
+
+
+def heldout_targets():
+    """100 further questions attacked with fakes the local model wrote by PoisonedRAG's
+    recipe (scripts/gen_heldout.py). Made after the first results, to test the guard
+    mode on attacks it was not designed against."""
+    return targets(DATA / "heldout.json")
+
+
+def heldout_pool():
+    queries, qrels, nq_open = _beir()
+    used = {t.qid for t in targets()} | {q.qid for q in clean_split("dev")} | \
+        {q.qid for q in clean_split("test")}
+    pool = sorted(qid for qid, text in queries.items()
+                  if qid not in used and normalize(text) in nq_open)
+    random.Random(1).shuffle(pool)
+    return [Question(q, queries[q], list(nq_open[normalize(queries[q])]), qrels.get(q, []))
+            for q in pool]
+
+
+def questions_for(condition):
+    """The questions a retrieval condition covers."""
+    if condition.startswith("ho-"):
+        return heldout_targets()
+    return targets()
 
 
 def clean_split(name):

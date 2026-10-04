@@ -45,8 +45,7 @@ def run_retrieval(condition, questions, store, embedder, llm=None, tau=None, k=D
 
     r = Retriever(len(store))
     if condition != "clean":
-        from .data import targets
-        poisons = attacks.build(condition, targets(), llm=llm, embedder=embedder, tau=tau)
+        poisons = attacks.build(condition, questions, llm=llm, embedder=embedder, tau=tau)
         vecs = embedder.passages([("", p["text"]) for p in poisons])
         np.save(DATA / f"attack_{condition}.npy", vecs)
         r.add_poisons(vecs)
@@ -75,15 +74,16 @@ def score(q, outcome):
     return "other"
 
 
-def prefetch(answerer, cases, joint_ks=()):
+def prefetch(answerer, cases, joint_ks=(), isolated=True):
     """Fill the LLM cache for every (question, passage) pair in one big batched run, so
     the defences afterwards only read the cache. cases: [(Question, [Passage])]."""
     from .defences import ISOLATED_PROMPT
     from .llm import rag_prompt
 
-    prompts = [ISOLATED_PROMPT.format(context=p.body, question=q.text)
-               for q, ps in cases for p in ps]
-    answerer.llm.generate(prompts, max_tokens=24)
+    if isolated:
+        prompts = [ISOLATED_PROMPT.format(context=p.body, question=q.text)
+                   for q, ps in cases for p in ps]
+        answerer.llm.generate(prompts, max_tokens=24)
     for k in joint_ks:
         answerer.llm.generate([rag_prompt(q.text, [p.body for p in ps[:k]]) for q, ps in cases],
                               max_tokens=48)

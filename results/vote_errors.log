@@ -1,0 +1,17 @@
+when did mcgee became a regular on ncis
+    gold 'in season two'; plain RAG 'McGee became a regular character on NCIS at the end of the season two '; vote '2003', votes per answer [4, 1, 1, 1, 1]
+who laid foundation stone of islamia college peshawar
+    gold 'Haji Sahib'; plain RAG 'Haji Sahib of Turangzai laid the foundation stone of Islamia College P'; vote 'Nawab Sir Sahibzada Abdul Qayyum', votes per answer [2, 1]
+when did under the cork tree come out
+    gold 'May 3, 2005'; plain RAG 'From Under the Cork Tree was released on May 3, 2005.'; vote 'March 14, 2006', votes per answer [1, 1, 1]
+what is the first covenant in the old testament
+    gold 'the Noahic Covenant'; plain RAG 'The first covenant in the Old Testament is the Noahic Covenant, establ'; vote 'Mosaic Covenant', votes per answer [3, 2, 1, 1, 1, 1, 1]
+where did remember the titans camp take place
+    gold 'Gettysburg College'; plain RAG 'Gettysburg College.'; vote 'T. C. Williams High School', votes per answer [2, 1, 1, 1]
+
+(0 model calls)
+  26  vote right, plain RAG wrong
+  95  plain RAG right, vote wrong
+  70    a passage on its own gave the right answer, and lost the vote
+  32    the vote was a tie, settled by rank
+  19    the vote's answer is part of a gold answer ("Close" for "Glenn Close")

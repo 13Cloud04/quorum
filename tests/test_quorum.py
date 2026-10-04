@@ -202,3 +202,25 @@ def test_poisons_get_labels_after_the_corpus(tmp_path, monkeypatch):
     hits = r.search(x[7][None], k=2)[0]
     assert {h.label for h in hits} == {7, n}
     assert np.allclose(r.vector(n), p) and np.allclose(r.vector(7), x[7])
+
+
+def test_guard_refuses_an_answer_that_rests_on_near_copies():
+    from quorum.defences import guard
+
+    ps = poisons(echo=False) + genuine([1, 2, 3])
+    ans = FakeAnswerer(table({1: "23", 2: "I don't know", 3: "I don't know"}),
+                       joint="Season 4 has 24 episodes.")
+    out = guard(Q, ps, ans, QuorumSettings(echo=False, inject=False, tau=0.9))
+    assert out.abstained and out.detail["why"] == "answer rests on near-copies only"
+
+
+def test_guard_keeps_an_answer_with_independent_support():
+    from quorum.defences import guard
+
+    ps = genuine([1, 2, 3])
+    ans = FakeAnswerer({1: "23", 2: "23 episodes", 3: "I don't know"}, joint="It has 23 episodes.")
+    out = guard(Q, ps, ans, QuorumSettings(echo=False, inject=False, tau=0.9))
+    assert not out.abstained and out.answer == "It has 23 episodes."
+    # a single supporting passage is not "repeated", so it is not refused either
+    ans = FakeAnswerer({1: "23", 2: "I don't know", 3: "I don't know"}, joint="23")
+    assert not guard(Q, ps, ans, QuorumSettings(echo=False, inject=False, tau=0.9)).abstained

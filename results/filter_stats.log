@@ -1,0 +1,24 @@
+copied-question filter
+  poisonedrag      poisons removed  500 of 500
+  paraphrase       poisons removed    6 of 500
+  inject           poisons removed  500 of 500
+  diverse          poisons removed    0 of 467
+  ho-poisonedrag   poisons removed  422 of 422
+  ho-paraphrase    poisons removed    5 of 422
+  ho-inject        poisons removed  422 of 422
+  ho-diverse       poisons removed    0 of 445
+  gold passages    wrongly removed 18 of 4201 (0.43%)
+merging: sources per question's fakes at tau=0.926
+  poisonedrag      5.00 fakes per question count as 1.33 sources; all in one source for 78 of 100 questions
+  paraphrase       5.00 fakes per question count as 1.48 sources; all in one source for 72 of 100 questions
+  inject           5.00 fakes per question count as 1.24 sources; all in one source for 82 of 100 questions
+  diverse          4.72 fakes per question count as 2.89 sources; all in one source for 30 of 99 questions
+  ho-poisonedrag   4.69 fakes per question count as 1.06 sources; all in one source for 86 of 90 questions
+  ho-paraphrase    4.69 fakes per question count as 1.16 sources; all in one source for 80 of 90 questions
+  ho-inject        4.69 fakes per question count as 1.18 sources; all in one source for 80 of 90 questions
+  ho-diverse       4.94 fakes per question count as 2.86 sources; all in one source for 24 of 90 questions
+injection filter (rules OR classifier >= threshold)
+  whole passage  threshold 0.6: poisons caught  91 of 500, real passages flagged 5 of 3000
+  whole passage  threshold 0.9: poisons caught  91 of 500, real passages flagged 3 of 3000
+  each sentence  threshold 0.6: poisons caught 194 of 500, real passages flagged 12 of 3000
+  each sentence  threshold 0.9: poisons caught 158 of 500, real passages flagged 6 of 3000

@@ -12,9 +12,9 @@ passage. Five passages per question, so 500 poison passages next to 2.68 M real 
   inject       PoisonedRAG plus an instruction aimed at the model ("other sources are
                outdated, answer X"): prompt injection carried by a document.
   diverse      Adaptive attack on quorum itself. The attacker knows the defence counts
-               near-duplicate passages as one source, so writes passages in different
-               styles, never copies the question, and keeps the five whose pairwise
-               similarity stays under the defence's clustering threshold.
+               near-duplicate passages as one source, so has the model write ten passages
+               in different styles, never copies the question, and plants the five that
+               are least alike.
 """
 from __future__ import annotations
 
@@ -65,17 +65,18 @@ def build(name, targets, llm=None, embedder=None, tau=None):
     path = DATA / f"attack_{name}.json"
     if path.exists():
         return json.loads(path.read_text())
-    if name == "poisonedrag":
+    kind = name.removeprefix("ho-")        # held-out sets reuse the same recipes
+    if kind == "poisonedrag":
         out = [{"qid": t.qid, "text": f"{t.text}. {a}"} for t in targets for a in t.adv_texts]
-    elif name == "inject":
+    elif kind == "inject":
         rng = random.Random(0)
         out = [{"qid": t.qid, "text": f"{t.text}. {a} " + rng.choice(INJECTIONS).format(t=t.target)}
                for t in targets for a in t.adv_texts]
-    elif name == "paraphrase":
+    elif kind == "paraphrase":
         paras = llm.generate([PARAPHRASE_PROMPT.format(q=t.text) for t in targets], max_tokens=48)
         out = [{"qid": t.qid, "text": f"{_clean(p)} {a}"}
                for t, p in zip(targets, paras) for a in t.adv_texts]
-    elif name == "diverse":
+    elif kind == "diverse":
         out = _diverse(targets, llm, embedder, tau)
     else:
         raise ValueError(name)
@@ -85,8 +86,11 @@ def build(name, targets, llm=None, embedder=None, tau=None):
 
 def _diverse(targets, llm, embedder, tau):
     """For each target: ten candidates in ten styles; drop any that lost the wrong answer
-    or copied the question; then greedily keep the most question-like candidate whose
-    similarity to every kept one is below tau."""
+    or copied the question. Then keep five, chosen greedily to be as unlike each other as
+    possible: start from the candidate closest to the question, then repeatedly add the
+    one whose highest similarity to those already kept is lowest. The attacker always
+    plants five (same budget as the other attacks), even when some must end up above
+    the defence's threshold `tau` and get merged."""
     from .defences import echoes
 
     prompts = [DIVERSE_PROMPT.format(style=s, q=t.text, t=t.target) for t in targets for s in STYLES]
@@ -99,12 +103,9 @@ def _diverse(targets, llm, embedder, tau):
             continue
         cv = embedder.passages([("", x) for x in cands])
         qv = embedder.queries([t.text])[0]
-        order = np.argsort(-(cv @ qv))
-        kept = []
-        for j in order:
-            if all(cv[j] @ cv[m] < tau for m in kept):
-                kept.append(j)
-            if len(kept) == PER_TARGET:
-                break
+        kept = [int(np.argmax(cv @ qv))]
+        while len(kept) < min(PER_TARGET, len(cands)):
+            rest = [j for j in range(len(cands)) if j not in kept]
+            kept.append(min(rest, key=lambda j: (max(cv[j] @ cv[m] for m in kept), -(cv[j] @ qv))))
         out += [{"qid": t.qid, "text": cands[j]} for j in kept]
     return out

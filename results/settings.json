@@ -1,0 +1,9 @@
+{
+ "k": 10,
+ "echo": true,
+ "inject": true,
+ "tau": 0.926,
+ "min_sources": 1,
+ "conflict": 99.0,
+ "cluster": true
+}

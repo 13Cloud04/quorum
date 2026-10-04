@@ -1,0 +1,3 @@
+vanilla k=5  median 2.02s  p90 3.15s  over 50 questions
+quorum vote  median 4.18s  p90 5.32s  over 50 questions
+quorum guard median 5.82s  p90 8.50s  over 50 questions

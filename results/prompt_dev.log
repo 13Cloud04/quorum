@@ -1,0 +1,9 @@
+current  answers/10=5.8 conflict= 99.0: correct 0.565 abstain 0.035 other 0.400
+current  answers/10=5.8 conflict=  1.0: correct 0.415 abstain 0.335 other 0.250
+current  answers/10=5.8 conflict= 0.67: correct 0.405 abstain 0.350 other 0.245
+current  answers/10=5.8 conflict=  0.5: correct 0.265 abstain 0.605 other 0.130
+strict   answers/10=5.6 conflict= 99.0: correct 0.575 abstain 0.025 other 0.400
+strict   answers/10=5.6 conflict=  1.0: correct 0.435 abstain 0.320 other 0.245
+strict   answers/10=5.6 conflict= 0.67: correct 0.425 abstain 0.345 other 0.230
+strict   answers/10=5.6 conflict=  0.5: correct 0.275 abstain 0.600 other 0.125
+
